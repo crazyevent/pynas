@@ -15,9 +15,10 @@
 	pip install -r requirements.txt
 ```	
 - 安装完依赖后，修改配置文件config.json，使用文本编辑器打开即可
-  listen: 需要开启几个服务就配置几个addr和port，主要给一些多出口用户，通常不需要修改；
-  www: 需要分享几个目录就配置几个name和path，其中name可以自定义，path是本机的物理路径;
-
+```
+	listen: 需要开启几个服务就配置几个addr和port，主要给一些多出口用户，通常不需要修改；
+	www: 需要分享几个目录就配置几个name和path，其中name可以自定义，path是本机的物理路径;
+```
 - 双击 run.bat
 
 - 路由器上配置端口转发
