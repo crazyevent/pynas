@@ -1,0 +1,22 @@
+.container {
+  width:100%;
+  margin:auto;
+}
+
+.col-left {
+  width:50%;
+  float:left;
+  padding=100px;
+}
+
+.col-right {
+  width:50%;
+  float:right;
+}
+
+p {
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  overflow:hidden;
+  padding=100px;
+}
