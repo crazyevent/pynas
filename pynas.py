@@ -53,6 +53,8 @@ def share_public(filepath):
         split_path = filepath.split('/')
         split_path.pop() # remove last path
         paths = []
+        paths.append({'path':'/', 'title':'/', 'size':0})
+        paths.append({'path':'/' + '/'.join(split_path), 'title':'..', 'size':0})
         for d in items:
             size = os.path.getsize(fpath + os.sep + d)
             base = os.path.basename(d)
