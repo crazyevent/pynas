@@ -22,12 +22,12 @@ def load_config(file_path):
 
 config = load_config(config_file)
 app = Bottle()
-public_path = os.path.split(os.path.realpath(__file__))[0] + os.seq + 'public'
+public_path = os.path.split(os.path.realpath(__file__))[0] + os.sep + 'public'
 
 
-@app.route('/view/<filepath:path>')
+@app.route('/public/<filepath:path>')
 def web_views(filepath):
-    return bottle.static_file(filepath, view_path)
+    return bottle.static_file(filepath, public_path)
 
 
 @app.route('/<filepath:path>')
@@ -44,7 +44,7 @@ def share_public(filepath):
         sub_path = '/'.join(split_path)
         fpath = dest_path + '/' + sub_path
         if not os.path.exists(fpath):
-            return 'not found'
+            return bottle.template('error', code = 404)
         if not os.path.isdir(fpath):
             return bottle.static_file(sub_path, dest_path, download=True)
 
@@ -52,30 +52,20 @@ def share_public(filepath):
         items = os.listdir(fpath)
         split_path = filepath.split('/')
         split_path.pop() # remove last path
-        html = '<div style="width:1024px;margin:auto;">\n'
-        left = '\t<div style="width:50%;float:left;padding=100px;">\n'
-        right = '\t<div style="width:50%;float:right;padding=100px;">\n'
-        left += '\t\t<p><a href="/">/</a></p>\n\t\t<p><a href="/%s">..</a></p>\n' % '/'.join(split_path)
-        right += '\t\t<p>0</p>\n\t\t<p>0</p>\n'
+        paths = []
         for d in items:
             size = os.path.getsize(fpath + os.sep + d)
             base = os.path.basename(d)
             url = '/%s/%s' % (filepath, base)
-            left += '\t\t<p style="white-space:nowrap;text-overflow:ellipsis;overflow:hidden;"><a href="%s">%s</a></p>\n' % (url, base)
-            right += '\t\t<p>%d</p>\n' % size
-        left += '\t</div>\n'
-        right += '\t</div>\n'
-        html += left + right + '</div>\n'
-        return html
-    return 'not found',
+            paths.append({'path':url, 'title':base, 'size':size})
+        return bottle.template('main', items = paths)
+    return bottle.template('error', code = 404)
 
 
 @app.route('/')
 def share_index():
     config = load_config(config_file)
-    html = '<div style="width:1024px;margin:auto;">\n'
-    left = '\t<div style="width:50%;float:left;padding=100px;">\n'
-    right = '\t<div style="width:50%;float:right;padding=40px;">\n'
+    paths = []
     for item in config['www']:
         f = item['path']
         n = item['name']
@@ -83,13 +73,9 @@ def share_index():
             continue
         size = os.path.getsize(f)
         if os.path.isdir(f):
-            subfix = '/'
-        left += '\t\t<p><a href="/%s">%s%s</a></p>\n' % (n, n, subfix)
-        right += '\t\t<p>%d</p>\n' % size
-    left += '\t</div>\n'
-    right += '\t</div>\n'
-    html += left + right + '</div>\n'
-    return html
+            sep = '/'
+        paths.append({'path':sep+n, 'title':n+sep, 'size':size})
+    return bottle.template('main', items = paths)
     
 
 def run(addr, port):
