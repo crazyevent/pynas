@@ -17,12 +17,19 @@ config_file = './config.json'
 def load_config(file_path):
     with open(file_path, 'r') as f:
         config = json.load(f)
+        # merge config
+        main_owner = config.get('owner', '*').split(',')
+        main_ext = config.get('ext_filter', '').split(',')
         for item in config['www']:
-            owner = '*'
+            owner = main_owner
             if 'owner' in item:
-                owner = item['owner']
-            owner = owner.split(',')
+                owner = item['owner'].split(',')
             item['owner'] = owner
+            
+            ext = main_ext
+            if 'ext_filter' in item:
+                ext = item['ext_filter'].split(',')
+            item['ext_filter'] = ext
         return config
 
 
@@ -47,6 +54,8 @@ def web_views(filepath):
 
 @app.route('/<filepath:path>')
 def share_public(filepath):
+    if filepath == 'favicon.ico':
+        return bottle.static_file(filepath, public_path)
     sub_path = ''
     split_path = filepath.split('/')
     base_path = split_path[0]
@@ -76,8 +85,12 @@ def share_public(filepath):
         paths.append({'path':'/', 'title':'/', 'size':0})
         paths.append({'path':'/' + '/'.join(split_path), 'title':'..', 'size':0})
         for d in items:
-            size = os.path.getsize(fpath + os.sep + d)
             base = os.path.basename(d)
+            _, ext = os.path.splitext(base)
+            print(ext)
+            if ext in item['ext_filter']:
+                continue
+            size = os.path.getsize(fpath + os.sep + d)
             url = '/%s/%s' % (filepath, base)
             paths.append({'path':url, 'title':base, 'size':size})
         return bottle.template('main', items = paths)
