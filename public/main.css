@@ -13,6 +13,11 @@
   float: right;
 }
 
+.col-center {
+  width: 300px;
+  margin: auto;
+}
+
 .col-left-space {
   padding-left: 100px;
 }

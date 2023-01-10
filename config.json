@@ -1,4 +1,5 @@
 {
+  "users":[{"user": "dada","passwd": "dada"}],
   "listen":[{"addr":"0.0.0.0","port":8000}],
-  "www":[{"name":"共享文件夹1","path":"D:/"},{"name":"共享文件夹2","path":"C:/"}]
+  "www":[{"name":"共享文件夹1","path":"D:/"},{"name":"共享文件夹2","path":"C:/","owner":"dada"}]
 }
