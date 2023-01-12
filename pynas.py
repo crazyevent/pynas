@@ -11,16 +11,14 @@ from beaker.middleware import SessionMiddleware
 
 
 monkey.patch_all()
-config_file = './config.json'
-
 
 def load_config(file_path):
     with open(file_path, 'r') as f:
-        config = json.load(f)
+        conf = json.load(f)
         # merge config
-        main_owner = config.get('owner', '*').split(',')
-        main_ext = config.get('ext_filter', '').split(',')
-        for item in config['www']:
+        main_owner = conf.get('owner', '*').split(',')
+        main_ext = conf.get('ext_filter', '').split(',')
+        for item in conf['www']:
             owner = main_owner
             if 'owner' in item:
                 owner = item['owner'].split(',')
@@ -30,7 +28,7 @@ def load_config(file_path):
             if 'ext_filter' in item:
                 ext = item['ext_filter'].split(',')
             item['ext_filter'] = ext
-        return config
+        return conf
 
 
 pool_size = 256
@@ -38,17 +36,19 @@ backlog = 256
 max_accept = 32767
 session_opts = {
     'session.type': 'file',
-    'session.cookie_expires': 60,
+    'session.cookie_expires': 600,
     'session.data_dir': 'sessions',
     'session.auto': True
 }
-config = load_config(config_file)
 app = Bottle()
-public_path = os.path.split(os.path.realpath(__file__))[0] + os.sep + 'public'
+script_path = os.path.split(os.path.realpath(__file__))[0] + os.sep
+public_path = script_path + 'public'
+config_path = script_path+'config.json'
+config = load_config(config_path)
 
 
 @app.route('/public/<filepath:path>')
-def web_views(filepath):
+def web_public(filepath):
     return bottle.static_file(filepath, public_path)
 
 
@@ -82,26 +82,29 @@ def share_public(filepath):
         split_path = filepath.split('/')
         split_path.pop() # remove last path
         paths = []
-        paths.append({'path':'/', 'title':'/', 'size':0})
-        paths.append({'path':'/' + '/'.join(split_path), 'title':'..', 'size':0})
+        paths.append({'path':'/', 'title':'/', 'size':0, 'type':'D'})
+        paths.append({'path':'/' + '/'.join(split_path), 'title':'..', 'size':0, 'type':'D'})
         for d in items:
             base = os.path.basename(d)
             _, ext = os.path.splitext(base)
-            print(ext)
             if ext in item['ext_filter']:
                 continue
-            size = os.path.getsize(fpath + os.sep + d)
+            t = 'F'
+            this_path = fpath + os.sep + d
+            if os.path.isdir(this_path):
+                t = 'D'
+            size = os.path.getsize(this_path)
             url = '/%s/%s' % (filepath, base)
-            paths.append({'path':url, 'title':base, 'size':size})
-        return bottle.template('main', items = paths)
+            paths.append({'path':url, 'title':base, 'size':size, 'type':t})
+        return bottle.template('main', params = json.dumps(paths), user = user)
     return bottle.template('error', code = 404)
 
 
 @app.route('/')
 def share_index():
-    paths = []
     s = request.environ.get('beaker.session')
     user = s.get('user', None)
+    paths = []
     for item in config['www']:
         f = item['path']
         n = item['name']
@@ -110,11 +113,12 @@ def share_index():
             continue
         if not os.path.exists(f):
             continue
+        
         size = os.path.getsize(f)
         if os.path.isdir(f):
             sep = '/'
-        paths.append({'path':sep+n, 'title':n+sep, 'size':size})
-    return bottle.template('main', items = paths)
+        paths.append({'path':sep+n, 'title':n+sep, 'size':size, 'type':'D'})
+    return bottle.template('main', params = json.dumps(paths), user = user)
 
 
 @app.route('/login')
