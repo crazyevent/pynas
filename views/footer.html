@@ -1,15 +1,39 @@
 <nav aria-label="...">
     <ul class="pagination justify-content-center fixed-bottom w-50 p-3 start-50 translate-middle-x">
-        <li class="page-item disabled">
-            <a class="page-link">Previous</a>
-        </li>
-        <li class="page-item"><a class="page-link" href="#">1</a></li>
-        <li class="page-item active" aria-current="page">
-            <a class="page-link" href="#">2</a>
-        </li>
-        <li class="page-item"><a class="page-link" href="#">3</a></li>
         <li class="page-item">
-            <a class="page-link" href="#">Next</a>
+            <div class="dropdown">
+                <button class="page-link dropdown-toggle page-size" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    10
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item page-size-sel" href="#">10</a></li>
+                    <li><a class="dropdown-item page-size-sel" href="#">20</a></li>
+                    <li><a class="dropdown-item page-size-sel" href="#">50</a></li>
+                    <li><a class="dropdown-item page-size-sel" href="#">100</a></li>
+                </ul>
+            </div>
+        </li>
+        <li class="page-item page-start">
+            <a class="page-link"> << </a>
+        </li>
+        <li class="page-item page-prev">
+            <a class="page-link"> < </a>
+        </li>
+        <li>
+            <div class="dropup">
+                <button class="page-link dropdown-toggle page-index" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    1/4
+                </button>
+                <ul class="dropdown-menu page-items">
+                    <li><a class="dropdown-item" href="#">1</a></li>
+                </ul>
+            </div>
+        </li>
+        <li class="page-item">
+            <a class="page-link page-next" href="#"> > </a>
+        </li>
+        <li class="page-item">
+            <a class="page-link page-end" href="#"> >> </a>
         </li>
     </ul>
 </nav>
