@@ -1,0 +1,38 @@
+.page {
+    /*background-color: rgba(248, 250, 251, 1);*/
+    position: relative;
+    width: 1920px;
+    height: 970px;
+    overflow: hidden;
+    background-color: rgba(128, 128, 128, 0.5);
+}
+
+.group_1 {
+    width: 1920px;
+    height: 970px;
+    background-size: 100% 100%;
+    overflow: hidden;
+}
+
+.group_2 {
+    width: 1920px;
+    height: 891px;
+    margin-bottom: 1px;
+    overflow: hidden;
+}
+
+.section_1 {
+    box-shadow: 0px 8px 47px 0px rgba(0, 0, 0, 0.3);
+    height: 500px;
+    width: 900px;
+    margin: 210px 0 0 510px;
+}
+
+.section_2 {
+    position: relative;
+    width: 900px;
+    height: 500px;
+    background: url(/public/play-bg.png) -47px -39px no-repeat;
+    background-color: ;
+    background-size: 994px 594px;
+}

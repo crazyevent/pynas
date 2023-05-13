@@ -1,8 +1,14 @@
 import json
 import os
+from string import Template
+import subprocess
+import sys
+import threading
+import time
 import gevent
 import bottle
 import multiprocessing
+import hashlib
 from bottle import Bottle, request
 from gevent.pool import Pool
 from gevent.pywsgi import WSGIServer
@@ -11,6 +17,7 @@ from beaker.middleware import SessionMiddleware
 
 
 monkey.patch_all()
+
 
 def load_config(file_path):
     with open(file_path, 'r') as f:
@@ -23,7 +30,7 @@ def load_config(file_path):
             if 'owner' in item:
                 owner = item['owner'].split(',')
             item['owner'] = owner
-            
+
             ext = main_ext
             if 'ext_filter' in item:
                 ext = item['ext_filter'].split(',')
@@ -43,16 +50,150 @@ session_opts = {
 app = Bottle()
 script_path = os.path.split(os.path.realpath(__file__))[0] + os.sep
 public_path = script_path + 'public'
-config_path = script_path+'config.json'
+config_path = script_path + 'config.json'
+hls_path = script_path + 'hls'
 config = load_config(config_path)
 
+'''
+key=md5(hls-full-path),
+value=
+{
+    ts: latest_access
+    prepared: true
+    proc: subprocess
+    hls_full: hls_full_path
+    media: media_path
+    hls: hls_play_path
+}
+'''
+hls_media_map = {}
 
-@app.route('/public/<filepath:path>')
+
+def md5(content):
+    if content is None:
+        return ''
+    md5gen = hashlib.md5()
+    md5gen.update(content.encode())
+    md5code = md5gen.hexdigest()
+    md5gen = None
+    return md5code
+
+
+def convert_to_utf8(data):
+    """
+    @brief string convert to utf8 string
+    @param data: string to be convert
+    @return utf8 string
+    """
+    if isinstance(data, str):
+        return data.encode('utf-8')
+    elif isinstance(data, bytes):
+        return data.decode('utf-8').encode('utf-8')
+    elif isinstance(data, dict):
+        return {convert_to_utf8(key): convert_to_utf8(value) for key, value in data.items()}
+    elif isinstance(data, (list, tuple)):
+        return type(data)(convert_to_utf8(element) for element in data)
+    else:
+        return data
+
+
+def check_hls_timeout():
+    keys = []
+    for k, v in hls_media_map.items():
+        now = time.clock()
+        if now - v['ts'] >= 30:
+            print(k + ' is timeout')
+            keys.append(k)
+            # v['proc'].communicate(input='q')
+            # v['proc'].wait()
+            # v['proc'].terminate()
+            # v['proc'].kill()
+            # it's the best way to kill process for now
+            if sys.platform == 'win32':
+                p = subprocess.Popen('taskkill /F /PID ' + str(v['proc'].pid))
+            else:
+                p = subprocess.Popen('kill -9 ' + str(v['proc'].pid))
+            p.wait()
+            hls_full = v['hls_full']
+            files = os.listdir(hls_full)
+            for f in files:
+                os.remove(hls_full + os.sep + f)
+            os.rmdir(hls_full)
+    for key in keys:
+        hls_media_map.pop(key)
+    threading.Timer(5, check_hls_timeout).start()
+
+
+def prepare_media(hls_base_path, media_path):
+    key = md5(media_path)
+    fpath = hls_base_path + os.sep + key
+    if key in hls_media_map:
+        return key
+
+    if (not os.path.exists(fpath)):
+        os.mkdir(fpath)
+    hls = '/hls/' + key + '/' + 'index.m3u8'
+    hls_full = fpath + os.sep + 'index.m3u8'
+    cmd = 'ffmpeg -i "' + media_path + '" -c:v h264_qsv -c:a aac -f hls -hls_list_size 0 "' + \
+        hls_full + '"'
+    print(cmd)
+    p = subprocess.Popen(cmd,
+                         shell=False,
+                         stdout=sys.stdout,
+                         stderr=sys.stderr,
+                         )
+    hls_media_map[key] = {'ts': time.clock(),
+                          'prepared': False,
+                          'proc': p,
+                          'hls_full': fpath,
+                          'media': media_path,
+                          'hls': hls}
+    return key
+
+
+@ app.route('/prepare/<filepath:path>')
+def prepare_hls(filepath):
+    base_path = ''
+    split_path = filepath.split('/')
+    path_name = split_path[0]
+    for item in config['www']:
+        if item['name'] != path_name:
+            continue
+        base_path = item['path']
+        break
+    if len(base_path) == 0:
+        return {'code': 404}
+    split_path.pop(0)
+    media_path = base_path + os.sep + '/'.join(split_path)
+    key = prepare_media(hls_path, media_path)
+    return {'code': 0, 'key': key, 'prepared': False}
+
+
+@ app.route('/isprepared/<key>')
+def check_hls_prepared(key):
+    if key not in hls_media_map:
+        return {'code': 404}
+    item = hls_media_map[key]
+    ret = len(os.listdir(item['hls_full'])) > 3
+    hls_media_map[key]['prepared'] = ret
+    return {'code': 0, 'key': key, 'prepared': ret, 'hls': item['hls']}
+
+
+@ app.route('/hls/<filepath:path>')
+def play_hls(filepath):
+    split_path = filepath.split('/')
+    key = split_path[0]
+    if key in hls_media_map:
+        hls_media_map[key]['ts'] = time.clock()
+    return bottle.static_file(filepath, hls_path)
+
+
+@ app.route('/public/<filepath:path>')
 def web_public(filepath):
     return bottle.static_file(filepath, public_path)
 
 
-@app.route('/<filepath:path>')
+@ app.route('/<filepath:path>')
 def share_public(filepath):
     if filepath == 'favicon.ico':
         return bottle.static_file(filepath, public_path)
@@ -61,11 +202,11 @@ def share_public(filepath):
     base_path = split_path[0]
     s = request.environ.get('beaker.session')
     user = s.get('user', None)
-        
+
     for item in config['www']:
         owner = item['owner']
         if '*' not in owner and user not in owner:
-            return bottle.template('error', code = 403)
+            return bottle.template('error', code=403)
 
         dest_path = item['path']
         if item['name'] != base_path:
@@ -74,16 +215,17 @@ def share_public(filepath):
         sub_path = '/'.join(split_path)
         fpath = dest_path + '/' + sub_path
         if not os.path.exists(fpath):
-            return bottle.template('error', code = 404)
+            return bottle.template('error', code=404)
         if not os.path.isdir(fpath):
             return bottle.static_file(sub_path, dest_path, download=True)
 
         items = os.listdir(fpath)
         split_path = filepath.split('/')
-        split_path.pop() # remove last path
+        split_path.pop()  # remove last path
         paths = []
-        paths.append({'path':'/', 'title':'/', 'size':0, 'type':'D'})
-        paths.append({'path':'/' + '/'.join(split_path), 'title':'..', 'size':0, 'type':'D'})
+        paths.append({'path': '/', 'title': '/', 'size': 0, 'type': 'D'})
+        paths.append({'path': '/' + '/'.join(split_path),
+                     'title': '..', 'size': 0, 'type': 'D'})
         for d in items:
             base = os.path.basename(d)
             _, ext = os.path.splitext(base)
@@ -95,12 +237,12 @@ def share_public(filepath):
                 t = 'D'
             size = os.path.getsize(this_path)
             url = '/%s/%s' % (filepath, base)
-            paths.append({'path':url, 'title':base, 'size':size, 'type':t})
-        return bottle.template('main', params = json.dumps(paths), user = user)
-    return bottle.template('error', code = 404)
+            paths.append({'path': url, 'title': base, 'size': size, 'type': t})
+        return bottle.template('main', params=json.dumps(paths), user=user)
+    return bottle.template('error', code=404)
 
 
-@app.route('/')
+@ app.route('/')
 def share_index():
     s = request.environ.get('beaker.session')
     user = s.get('user', None)
@@ -113,24 +255,25 @@ def share_index():
             continue
         if not os.path.exists(f):
             continue
-        
+
         size = os.path.getsize(f)
         if os.path.isdir(f):
             sep = '/'
-        paths.append({'path':sep+n, 'title':n+sep, 'size':size, 'type':'D'})
-    return bottle.template('main', params = json.dumps(paths), user = user)
+        paths.append({'path': sep+n, 'title': n +
+                     sep, 'size': size, 'type': 'D'})
+    return bottle.template('main', params=json.dumps(paths), user=user)
 
 
-@app.route('/login')
+@ app.route('/login')
 def login_page():
     s = request.environ.get('beaker.session')
     user = s.get('user', None)
-    if user!=None:
+    if user != None:
         return bottle.redirect('/')
     return bottle.template('login')
 
 
-@app.route('/login', method="post")
+@ app.route('/login', method="post")
 def do_login():
     user = request.forms.get('user')
     passwd = request.forms.get('passwd')
@@ -138,7 +281,7 @@ def do_login():
     for u in config['users']:
         if user != u['user']:
             continue
-        if len(passwd)>0 and passwd==u['passwd']:
+        if len(passwd) > 0 and passwd == u['passwd']:
             login_sucess = True
             break
 
@@ -154,17 +297,24 @@ def do_login():
     return bottle.redirect('/')
 
 
-@app.route('/logout')
+@ app.route('/logout')
 def do_logout():
     s = request.environ.get('beaker.session')
     user = s.get('user', None)
-    if user!=None:
+    if user != None:
         print('%s is logout' % user)
         s.delete()
     return bottle.redirect('/')
 
 
+@ app.route('/play')
+def do_play():
+    return bottle.template('play')
+
+
 def run(addr, port):
+    check_hls_timeout()
+
     web_app = SessionMiddleware(app, session_opts)
     pool = Pool(pool_size)
     server = WSGIServer((addr, port), web_app, spawn=pool)
@@ -172,8 +322,10 @@ def run(addr, port):
     server.max_accept = max_accept
     server.serve_forever()
 
+
 if __name__ == '__main__':
     print(config)
     for item in config['listen']:
-        p = multiprocessing.Process(target=run, args=(item['addr'], item['port']))
+        p = multiprocessing.Process(
+            target=run, args=(item['addr'], item['port']))
         p.start()
