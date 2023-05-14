@@ -236,9 +236,9 @@ def share_public(filepath):
         split_path = filepath.split('/')
         split_path.pop()  # remove last path
         paths = []
-        paths.append({'path': '/', 'title': '/', 'size': 0, 'type': 'D'})
+        paths.append({'path': '/', 'title': 'root', 'size': 0, 'type': 'D'})
         paths.append({'path': '/' + '/'.join(split_path),
-                     'title': '..', 'size': 0, 'type': 'D'})
+                     'title': 'parent', 'size': 0, 'type': 'D'})
         for d in items:
             base = os.path.basename(d)
             _, ext = os.path.splitext(base)
