@@ -2,25 +2,6 @@ var page_size = 10;
 var page_index = 0;
 var total_pages = 0;
 
-let get_cookie = function (key) {
-    var val;
-    console.log(document.cookie, key);
-    document.cookie.split(';').forEach((item, i, all) => {
-        var ret = item.trim().split('=');
-        if (ret[0] == key) {
-            val = ret[1];
-            console.log('found', ret[0], ret[1]);
-            return;
-        }
-    });
-    return val;
-}
-
-let set_cookie = function (key, val, expire) {
-    document.cookie = `${key}=;expires=0;path=/`;
-    document.cookie = `${key}=${val};expires=${new Date(Date.now() + expire)};path=/`;
-}
-
 let set_page_size = function (size) {
     page_size = size;
     set_cookie('page_size', page_size, 3600);
@@ -75,7 +56,7 @@ let get_size_with_unit = size => {
 };
 
 let is_video = path => {
-    let exts = ['.mp4','.mkv','.rm','.rmvb','.flv','.webm','.avi','.wmv','.mpg','.ogg'];
+    let exts = ['.mp4','.mkv','.rm','.rmvb','.flv','.webm','.avi','.wmv','.mpg','.ogg','.mov','.3gp','.vob'];
     var found = false;
     exts.forEach(e => {
         if (path.endsWith(e)) {
@@ -84,6 +65,10 @@ let is_video = path => {
         }
     });
     return found;
+};
+
+let reset_play_time = _ => {
+    set_cookie('current_time', 0, 0);
 };
 
 let load_content = function () {
@@ -117,6 +102,7 @@ let load_content = function () {
             var play = document.createElement('a');
             play.href = `/play?f=${item.path}`;
             play.textContent = 'Play';
+            play.setAttribute('onclick', 'reset_play_time()');
             tds[3].appendChild(play);
         }
 

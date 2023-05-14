@@ -1,10 +1,13 @@
 var heartbeatInterval = 10000;
-var options = {};
+var options = {
+    autoplay: true
+};
 let videoTemplate = (src,vtt) =>
     `<video
         id="my-player"
         class="video-js"
         controls
+        muted="muted"
         preload="auto"
         poster="//vjs.zencdn.net/v/oceans.png"
         data-setup='{}'
@@ -27,11 +30,18 @@ let createPlayer = (opts, src, vtt) => {
         //videojs.log('Your player is ready!');
 
         // In this context, `this` is the player that was created by Video.js.
+        var currTime = get_cookie('current_time') || 0;
+        this.currentTime(currTime);
         this.play();
 
         // How about an event listener?
-        this.on('ended', function () {
+        this.on('ended', _ => {
             //videojs.log('Awww...over so soon?!');
+        });
+
+        this.on('timeupdate', _ => {
+            // record play time
+            set_cookie('current_time', this.currentTime(), 3600);
         });
     });
     return player;
