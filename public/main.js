@@ -75,7 +75,7 @@ let get_size_with_unit = size => {
 };
 
 let is_video = path => {
-    const exts = ['.mp4','.mkv','.rm','.rmvb','.flv','.webm','.avi','.wmv'];
+    let exts = ['.mp4','.mkv','.rm','.rmvb','.flv','.webm','.avi','.wmv','.mpg','.ogg'];
     var found = false;
     exts.forEach(e => {
         if (path.endsWith(e)) {

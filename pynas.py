@@ -128,7 +128,7 @@ def is_hls_compat(path):
     _, ext = os.path.splitext(path)
     if len(ext) == 0:
         return False
-    exts = ['.rm','.rmvb','.avi','.wmv','.flv']
+    exts = ['.rm','.rmvb','.avi','.wmv','.flv','.mpg']
     return ext not in exts
 
 
@@ -187,9 +187,11 @@ def check_hls_prepared(key):
     if key not in hls_media_map:
         return {'code': 404}
     item = hls_media_map[key]
-    ret = len(os.listdir(item['hls_full'])) > 3
+    ret = len(os.listdir(item['hls_full'])) > 0
     hls_media_map[key]['prepared'] = ret
-    return {'code': 0, 'key': key, 'prepared': ret, 'hls': item['hls']}
+    data = {'code': 0, 'key': key, 'prepared': ret, 'hls': item['hls']}
+    data['vtt'] = '/hls/' + key + '/' + 'index_vtt.m3u8'
+    return data
 
 
 @ app.route('/hls/<filepath:path>')

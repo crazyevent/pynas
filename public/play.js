@@ -1,6 +1,6 @@
 var heartbeatInterval = 10000;
 var options = {};
-let videoTemplate = src =>
+let videoTemplate = (src,vtt) =>
     `<video
         id="my-player"
         class="video-js"
@@ -10,6 +10,7 @@ let videoTemplate = src =>
         data-setup='{}'
         style="width: 100%; height: 100%; object-fit: fill">
             <source src="${src}" type="application/x-mpegURL"></source>
+            <track kind="captions" src="${vtt}" srclang="zh" label="Chinese" default />
             <p class="vjs-no-js">
             To view this video please enable JavaScript, and consider upgrading to a
             web browser that
@@ -19,8 +20,8 @@ let videoTemplate = src =>
         </p>
     </video>`;
 
-let createPlayer = (opts, src) => {
-    document.querySelector('.section_2').innerHTML = videoTemplate(src);
+let createPlayer = (opts, src, vtt) => {
+    document.querySelector('.section_2').innerHTML = videoTemplate(src, vtt);
 
     var player = videojs('my-player', opts, function onPlayerReady() {
         //videojs.log('Your player is ready!');
@@ -70,7 +71,7 @@ let checkHlsPrepared = async key => {
         }, 1000);
         return;
     }
-    createPlayer(options, res.hls);
+    createPlayer(options, res.hls, res.vtt);
     // keep hls alive
     heartbeat(res.hls);
 };
@@ -83,7 +84,5 @@ window.onload = async _ => {
         console.error(res);
         return;
     }
-    setTimeout(_ => {
-        checkHlsPrepared(res.key);
-    }, 1000);
+    checkHlsPrepared(res.key);
 }
