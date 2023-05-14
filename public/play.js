@@ -1,3 +1,4 @@
+var heartbeatInterval = 10000;
 var options = {};
 let videoTemplate = src =>
     `<video
@@ -46,6 +47,15 @@ let getQueryValue = (key) => {
     return context == null || context == "" || context == "undefined" ? "" : context;
 };
 
+let heartbeat = url => {
+    $.get(url, res => {
+        // nothing todo
+    });
+    setTimeout(_=>{
+        heartbeat(url);
+    }, heartbeatInterval);
+};
+
 let checkHlsPrepared = async key => {
     var res = await new Promise((resolve, reject) => {
         $.get(`/isprepared/${key}`, resolve);
@@ -61,6 +71,8 @@ let checkHlsPrepared = async key => {
         return;
     }
     createPlayer(options, res.hls);
+    // keep hls alive
+    heartbeat(res.hls);
 };
 
 window.onload = async _ => {

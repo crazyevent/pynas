@@ -124,6 +124,14 @@ def check_hls_timeout():
     threading.Timer(5, check_hls_timeout).start()
 
 
+def is_hls_compat(path):
+    _, ext = os.path.splitext(path)
+    if len(ext) == 0:
+        return False
+    exts = ['.rm','.rmvb','.avi','.wmv','.flv']
+    return ext not in exts
+
+
 def prepare_media(hls_base_path, media_path):
     key = md5(media_path)
     fpath = hls_base_path + os.sep + key
@@ -134,8 +142,13 @@ def prepare_media(hls_base_path, media_path):
         os.mkdir(fpath)
     hls = '/hls/' + key + '/' + 'index.m3u8'
     hls_full = fpath + os.sep + 'index.m3u8'
-    cmd = 'ffmpeg -i "' + media_path + '" -c:v h264_qsv -c:a aac -f hls -hls_list_size 0 "' + \
-        hls_full + '"'
+    cmd = ''
+    if is_hls_compat(media_path):
+        cmd = 'ffmpeg -i "' + media_path + '" -c:v copy -c:a copy -f hls -hls_list_size 0 "' + \
+            hls_full + '"'
+    else:
+        cmd = 'ffmpeg -i "' + media_path + '" -c:v h264_qsv -c:a aac -f hls -hls_list_size 0 "' + \
+            hls_full + '"'
     print(cmd)
     p = subprocess.Popen(cmd,
                          shell=False,

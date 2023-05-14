@@ -74,6 +74,18 @@ let get_size_with_unit = size => {
     return `${uSize}${unit}`;
 };
 
+let is_video = path => {
+    const exts = ['.mp4','.mkv','.rm','.rmvb','.flv','.webm','.avi','.wmv'];
+    var found = false;
+    exts.forEach(e => {
+        if (path.endsWith(e)) {
+            found = true;
+            return;
+        }
+    });
+    return found;
+};
+
 let load_content = function () {
     var start = page_index * page_size;
     var end = start + page_size;
@@ -101,7 +113,7 @@ let load_content = function () {
         // Size
         tds[2].innerHTML = get_size_with_unit(item.size);
         // Action
-        if (item.type === 'F') {
+        if (item.type === 'F' && is_video(item.title)) {
             var play = document.createElement('a');
             play.href = `/play?f=${item.path}`;
             play.textContent = 'Play';
