@@ -96,6 +96,23 @@ def convert_to_utf8(data):
     else:
         return data
 
+def clear_hls_cache(item):
+    # item['proc'].communicate(input='q')
+    # item['proc'].wait()
+    # item['proc'].terminate()
+    # item['proc'].kill()
+    # it's the best way to kill process for now
+    if sys.platform == 'win32':
+        p = subprocess.Popen('taskkill /F /PID ' + str(item['proc'].pid))
+    else:
+        p = subprocess.Popen('kill -9 ' + str(item['proc'].pid))
+    p.wait()
+    hls_full = item['hls_full']
+    files = os.listdir(hls_full)
+    for f in files:
+        os.remove(hls_full + os.sep + f)
+    os.rmdir(hls_full)
+
 
 def clear_hls_cache(item):
     # item['proc'].communicate(input='q')
