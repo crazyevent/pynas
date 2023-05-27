@@ -87,6 +87,10 @@ let checkHlsPrepared = async key => {
 };
 
 window.onload = async _ => {
+    document.querySelector('.btn').onclick = e => {
+        window.location.href = window.location.href + '&muxer_mode=1';
+    };
+
     var res = await new Promise((resolve, reject) => {
         $.get(`/prepare${getQueryValue('f')}`, resolve);
     });

@@ -96,6 +96,23 @@ def convert_to_utf8(data):
     else:
         return data
 
+def clear_hls_cache(item):
+    # item['proc'].communicate(input='q')
+    # item['proc'].wait()
+    # item['proc'].terminate()
+    # item['proc'].kill()
+    # it's the best way to kill process for now
+    if sys.platform == 'win32':
+        p = subprocess.Popen('taskkill /F /PID ' + str(item['proc'].pid))
+    else:
+        p = subprocess.Popen('kill -9 ' + str(item['proc'].pid))
+    p.wait()
+    hls_full = item['hls_full']
+    files = os.listdir(hls_full)
+    for f in files:
+        os.remove(hls_full + os.sep + f)
+    os.rmdir(hls_full)
+
 
 def check_hls_timeout():
     keys = []
@@ -104,21 +121,7 @@ def check_hls_timeout():
         if now - v['ts'] >= 30:
             print(k + ' is timeout')
             keys.append(k)
-            # v['proc'].communicate(input='q')
-            # v['proc'].wait()
-            # v['proc'].terminate()
-            # v['proc'].kill()
-            # it's the best way to kill process for now
-            if sys.platform == 'win32':
-                p = subprocess.Popen('taskkill /F /PID ' + str(v['proc'].pid))
-            else:
-                p = subprocess.Popen('kill -9 ' + str(v['proc'].pid))
-            p.wait()
-            hls_full = v['hls_full']
-            files = os.listdir(hls_full)
-            for f in files:
-                os.remove(hls_full + os.sep + f)
-            os.rmdir(hls_full)
+            clear_hls_cache(v)
     for key in keys:
         hls_media_map.pop(key)
     threading.Timer(5, check_hls_timeout).start()
@@ -132,18 +135,20 @@ def is_hls_compat(path):
     return ext not in exts
 
 
-def prepare_media(hls_base_path, media_path):
+def prepare_media(hls_base_path, media_path, muxer_mode):
     key = md5(media_path)
     fpath = hls_base_path + os.sep + key
     if key in hls_media_map:
-        return key
+        if muxer_mode == hls_media_map[key]['muxer_mode']:
+            return key
+        clear_hls_cache(hls_media_map[key])
 
     if (not os.path.exists(fpath)):
         os.mkdir(fpath)
     hls = '/hls/' + key + '/' + 'index.m3u8'
     hls_full = fpath + os.sep + 'index.m3u8'
     cmd = ''
-    if is_hls_compat(media_path):
+    if is_hls_compat(media_path) and muxer_mode == 0:
         cmd = 'ffmpeg -i "' + media_path + '" -c:v copy -c:a copy -f hls -hls_list_size 0 "' + \
             hls_full + '"'
     else:
@@ -160,12 +165,14 @@ def prepare_media(hls_base_path, media_path):
                           'proc': p,
                           'hls_full': fpath,
                           'media': media_path,
-                          'hls': hls}
+                          'hls': hls,
+                          'muxer_mode': muxer_mode}
     return key
 
 
 @ app.route('/prepare/<filepath:path>')
 def prepare_hls(filepath):
+    muxer_mode = int(request.query.muxer_mode or '0')
     base_path = ''
     split_path = filepath.split('/')
     path_name = split_path[0]
@@ -178,7 +185,7 @@ def prepare_hls(filepath):
         return {'code': 404}
     split_path.pop(0)
     media_path = base_path + os.sep + '/'.join(split_path)
-    key = prepare_media(hls_path, media_path)
+    key = prepare_media(hls_path, media_path, muxer_mode)
     return {'code': 0, 'key': key, 'prepared': False}
 
 
