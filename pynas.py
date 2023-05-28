@@ -96,6 +96,7 @@ def convert_to_utf8(data):
     else:
         return data
 
+
 def clear_hls_cache(item):
     # item['proc'].communicate(input='q')
     # item['proc'].wait()
@@ -131,7 +132,7 @@ def is_hls_compat(path):
     _, ext = os.path.splitext(path)
     if len(ext) == 0:
         return False
-    exts = ['.rm','.rmvb','.avi','.wmv','.flv','.mpg']
+    exts = ['.rm', '.rmvb', '.avi', '.wmv', '.flv', '.mpg']
     return ext not in exts
 
 
@@ -208,6 +209,11 @@ def play_hls(filepath):
     if key in hls_media_map:
         hls_media_map[key]['ts'] = time.clock()
     return bottle.static_file(filepath, hls_path)
+
+
+@ app.route('/play/<filepath:path>')
+def do_play(filepath):
+    return bottle.template('play', filepath=filepath)
 
 
 @ app.route('/public/<filepath:path>')
@@ -327,11 +333,6 @@ def do_logout():
         print('%s is logout' % user)
         s.delete()
     return bottle.redirect('/')
-
-
-@ app.route('/play')
-def do_play():
-    return bottle.template('play')
 
 
 def run(addr, port):

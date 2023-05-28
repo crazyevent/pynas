@@ -56,7 +56,7 @@ let get_size_with_unit = size => {
 };
 
 let is_video = path => {
-    let exts = ['.mp4','.mkv','.rm','.rmvb','.flv','.webm','.avi','.wmv','.mpg','.ogg','.mov','.3gp','.vob'];
+    let exts = ['.mp4', '.mkv', '.rm', '.rmvb', '.flv', '.webm', '.avi', '.wmv', '.mpg', '.ogg', '.mov', '.3gp', '.vob'];
     var found = false;
     exts.forEach(e => {
         if (path.endsWith(e)) {
@@ -100,7 +100,7 @@ let load_content = function () {
         // Action
         if (item.type === 'F' && is_video(item.title)) {
             var play = document.createElement('a');
-            play.href = `/play?f=${item.path}`;
+            play.href = `/play${item.path}`;
             play.textContent = 'Play';
             play.setAttribute('onclick', 'reset_play_time()');
             tds[3].appendChild(play);
@@ -147,41 +147,57 @@ let load_pages = function () {
     }
     setTimeout(_ => {
         document.querySelectorAll('.page-index-sel').forEach((v, i, all) => {
-            v.onclick = e => {
-                page_index = parseInt(e.target.innerHTML) - 1;
-                switch_page(page_index, total_pages);
-            };
+            v.onclick = sel_page;
         });
     }, 10);
-    document.querySelector('.page-start').onclick = e => {
-        page_index = 0;
-        switch_page(page_index, total_pages);
-    };
-    document.querySelector('.page-end').onclick = e => {
-        page_index = total_pages - 1;
-        switch_page(page_index, total_pages);
-    };
+    document.querySelector('.page-start').onclick = start_page;
+    document.querySelector('.page-end').onclick = end_page;
     document.querySelector('.page-prev').onclick = prev_page;
     document.querySelector('.page-next').onclick = next_page;
     switch_page(page_index, total_pages);
 }
 
-let next_page = function () {
+let sel_page = function (e) {
+    page_index = parseInt(e.target.innerHTML) - 1;
+    //switch_page(page_index, total_pages);
+    url_switch_page();
+}
+
+let start_page = function (e) {
+    page_index = 0;
+    //switch_page(page_index, total_pages);
+    url_switch_page();
+};
+
+let end_page = function (e) {
+    page_index = total_pages - 1;
+    //switch_page(page_index, total_pages);
+    url_switch_page();
+};
+
+let next_page = function (e) {
     if (page_index < total_pages - 1) {
         page_index++;
     }
-    switch_page(page_index, total_pages);
+    //switch_page(page_index, total_pages);
+    url_switch_page();
 }
 
-let prev_page = function () {
+let prev_page = function (e) {
     if (page_index > 0) {
         page_index--;
     }
-    switch_page(page_index, total_pages);
+    //switch_page(page_index, total_pages);
+    url_switch_page();
 }
 
+let url_switch_page = () => {
+    var url = window.location.href.split('?')[0];
+    window.location.href = `${url}?page_index=${page_index}&page_size=${page_size}`;
+};
+
 let switch_page = function (index, total) {
-    console.log(index, total);
+    // console.log(index, total);
     document.querySelector('.page-index').innerHTML = `${index + 1}/${total}`;
     var page_start = document.querySelector('.page-start');
     var page_end = document.querySelector('.page-end');
@@ -212,7 +228,18 @@ let switch_page = function (index, total) {
     load_content();
 }
 
+let load_query = _ => {
+    var paras = parse_query();
+    var query = {};
+    query.page_index = parseInt(paras.page_index) || 0;
+    query.page_size = parseInt(paras.page_size) || 10;
+
+    set_page_size(query.page_size);
+    page_index = query.page_index || 0;
+};
+
 let init_page = function () {
+    load_query();
     load_nav();
     load_content();
     load_footer();

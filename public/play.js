@@ -2,7 +2,7 @@ var heartbeatInterval = 10000;
 var options = {
     autoplay: true
 };
-let videoTemplate = (src,vtt) =>
+let videoTemplate = (src, vtt) =>
     `<video
         id="my-player"
         class="video-js"
@@ -47,22 +47,11 @@ let createPlayer = (opts, src, vtt) => {
     return player;
 };
 
-let getQueryValue = (key) => {
-    var reg = new RegExp("(^|&)" + key + "=([^&]*)(&|$)", "i");
-    var r = window.location.search.substring(1).match(reg); // 获取url中"?"符后的字符串并正则匹配
-    var context = "";
-    if (r != null)
-        context = decodeURIComponent(r[2]);
-    reg = null;
-    r = null;
-    return context == null || context == "" || context == "undefined" ? "" : context;
-};
-
 let heartbeat = url => {
     $.get(url, res => {
         // nothing todo
     });
-    setTimeout(_=>{
+    setTimeout(_ => {
         heartbeat(url);
     }, heartbeatInterval);
 };
@@ -87,12 +76,19 @@ let checkHlsPrepared = async key => {
 };
 
 window.onload = async _ => {
-    document.querySelector('.btn').onclick = e => {
-        window.location.href = window.location.href + '&muxer_mode=1';
+    let btn = document.querySelector('.btn');
+    var query = parse_query();
+    btn.onclick = e => {
+        var url = window.location.href.split('?')[0];
+        var muxer_mode = e.target.innerHTML == '兼容模式' ? 1 : 0;
+        set_cookie('current_time', 0, 3600);
+        window.location.href = `${url}?muxer_mode=${muxer_mode}`;
     };
+    var muxer_mode = parseInt(query.muxer_mode) || 0;
+    btn.innerHTML = muxer_mode === 1 ? '快速模式' : '兼容模式';
 
     var res = await new Promise((resolve, reject) => {
-        $.get(`/prepare${getQueryValue('f')}`, resolve);
+        $.get(`/prepare/${filepath}?muxer_mode=${muxer_mode}`, resolve);
     });
     if (res.code != 0) {
         console.error(res);
