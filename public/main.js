@@ -158,24 +158,28 @@ let load_pages = function () {
 }
 
 let sel_page = function (e) {
+    e.preventDefault();
     page_index = parseInt(e.target.innerHTML) - 1;
     //switch_page(page_index, total_pages);
     url_switch_page();
 }
 
 let start_page = function (e) {
+    e.preventDefault();
     page_index = 0;
     //switch_page(page_index, total_pages);
     url_switch_page();
 };
 
 let end_page = function (e) {
+    e.preventDefault();
     page_index = total_pages - 1;
     //switch_page(page_index, total_pages);
     url_switch_page();
 };
 
 let next_page = function (e) {
+    e.preventDefault();
     if (page_index < total_pages - 1) {
         page_index++;
     }
@@ -184,6 +188,7 @@ let next_page = function (e) {
 }
 
 let prev_page = function (e) {
+    e.preventDefault();
     if (page_index > 0) {
         page_index--;
     }
@@ -230,12 +235,9 @@ let switch_page = function (index, total) {
 
 let load_query = _ => {
     var paras = parse_query();
-    var query = {};
-    query.page_index = parseInt(paras.page_index) || 0;
-    query.page_size = parseInt(paras.page_size) || 10;
-
-    set_page_size(query.page_size);
-    page_index = query.page_index || 0;
+    page_index = parseInt(paras.page_index) || 0;
+    page_size = parseInt(get_cookie('page_size')) || (parseInt(paras.page_size) || 10)
+    set_page_size(page_size);
 };
 
 let init_page = function () {
