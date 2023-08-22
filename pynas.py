@@ -159,17 +159,17 @@ def prepare_media(hls_base_path, media_path, muxer_mode):
             hls_full + '"'
     print(cmd)
     p = subprocess.Popen(cmd,
-                         shell=False,
-                         stdout=sys.stdout,
-                         stderr=sys.stderr,
-                         )
+        shell=False,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+        )
     hls_media_map[key] = {'ts': time.clock(),
-                          'prepared': False,
-                          'proc': p,
-                          'hls_full': fpath,
-                          'media': media_path,
-                          'hls': hls,
-                          'muxer_mode': muxer_mode}
+        'prepared': False,
+        'proc': p,
+        'hls_full': fpath,
+        'media': media_path,
+        'hls': hls,
+        'muxer_mode': muxer_mode}
     return key
 
 
@@ -234,13 +234,14 @@ def share_public(filepath):
     user = s.get('user', None)
 
     for item in config['www']:
-        owner = item['owner']
-        if '*' not in owner and user not in owner:
-            return bottle.template('error', code=403)
-
         dest_path = item['path']
         if item['name'] != base_path:
             continue
+
+        owner = item['owner']
+        if '*' not in owner and user not in owner:
+            return bottle.template('error', code=403)
+        
         split_path.pop(0)
         sub_path = '/'.join(split_path)
         fpath = dest_path + '/' + sub_path
@@ -255,7 +256,7 @@ def share_public(filepath):
         paths = []
         paths.append({'path': '/', 'title': 'root', 'size': 0, 'type': 'D'})
         paths.append({'path': '/' + '/'.join(split_path),
-                     'title': 'parent', 'size': 0, 'type': 'D'})
+            'title': 'parent', 'size': 0, 'type': 'D'})
         for d in items:
             base = os.path.basename(d)
             _, ext = os.path.splitext(base)
@@ -290,7 +291,7 @@ def share_index():
         if os.path.isdir(f):
             sep = '/'
         paths.append({'path': sep+n, 'title': n +
-                     sep, 'size': size, 'type': 'D'})
+            sep, 'size': size, 'type': 'D'})
     return bottle.template('main', params=json.dumps(paths), user=user)
 
 
