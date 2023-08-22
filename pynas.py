@@ -22,6 +22,8 @@ monkey.patch_all()
 def load_config(file_path):
     with open(file_path, 'r') as f:
         conf = json.load(f)
+        if 'session_expires' not in conf:
+            conf['session_expires'] = 600
         # merge config
         main_owner = conf.get('owner', '*').split(',')
         main_ext = conf.get('ext_filter', '').split(',')
@@ -41,18 +43,18 @@ def load_config(file_path):
 pool_size = 256
 backlog = 256
 max_accept = 32767
-session_opts = {
-    'session.type': 'file',
-    'session.cookie_expires': 600,
-    'session.data_dir': 'sessions',
-    'session.auto': True
-}
 app = Bottle()
 script_path = os.path.split(os.path.realpath(__file__))[0] + os.sep
 public_path = script_path + 'public'
 config_path = script_path + 'config.json'
 hls_path = script_path + 'hls'
 config = load_config(config_path)
+session_opts = {
+    'session.type': 'file',
+    'session.cookie_expires': config['session_expires'] ,
+    'session.data_dir': 'sessions',
+    'session.auto': True
+}
 
 '''
 key=md5(hls-full-path),
@@ -95,23 +97,6 @@ def convert_to_utf8(data):
         return type(data)(convert_to_utf8(element) for element in data)
     else:
         return data
-
-def clear_hls_cache(item):
-    # item['proc'].communicate(input='q')
-    # item['proc'].wait()
-    # item['proc'].terminate()
-    # item['proc'].kill()
-    # it's the best way to kill process for now
-    if sys.platform == 'win32':
-        p = subprocess.Popen('taskkill /F /PID ' + str(item['proc'].pid))
-    else:
-        p = subprocess.Popen('kill -9 ' + str(item['proc'].pid))
-    p.wait()
-    hls_full = item['hls_full']
-    files = os.listdir(hls_full)
-    for f in files:
-        os.remove(hls_full + os.sep + f)
-    os.rmdir(hls_full)
 
 
 def clear_hls_cache(item):
