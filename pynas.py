@@ -9,6 +9,8 @@ import gevent
 import bottle
 import multiprocessing
 import hashlib
+from cgi import parse_header
+import re
 from bottle import Bottle, request
 from gevent.pool import Pool
 from gevent.pywsgi import WSGIServer
@@ -336,6 +338,38 @@ def do_logout():
         print('%s is logout' % user)
         s.delete()
     return bottle.redirect('/')
+
+
+@ app.route('/upload', method='POST') 
+def do_upload():
+    updir = config['updir']
+    if len(updir) == 0:
+        return {'code': 403, 'msg': 'reject'}
+    
+    #content_len = request.content_length
+    _, dispos = parse_header(request.headers.get('Content-Disposition'))
+    filename = dispos['filename']
+    if len(filename) == 0:
+        return {'code': 403, 'msg': 'reject'}
+    
+    range, _ = parse_header(request.headers.get('Content-Range'))
+    if len(range) == 0:
+        return {'code': 403, 'msg': 'reject'}
+    match = re.match(r"bytes (\d+)-(\d+)/(\d+)", range)
+    start = int(match.group(1))
+    end = int(match.group(2))
+    total = int(match.group(3))
+    if end >= total:
+        return {'code': 403, 'msg': 'reject'}
+
+    save_file = f'{updir}{filename}'
+    progress = end + 1
+    with open(save_file, 'a+b') as f:
+        f.seek(start)
+        f.write(request.body.read())
+        f.seek(progress)
+        f.truncate()
+    return {'code': 200, 'filename': filename, 'progress': progress, 'msg': 'success'}
 
 
 def run(addr, port):

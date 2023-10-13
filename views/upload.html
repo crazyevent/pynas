@@ -1,0 +1,32 @@
+<input type="file" id="fileInput">
+
+<script>
+    var xhr = new XMLHttpRequest();
+    var url = 'your_upload_url_here';
+    xhr.open('PUT', url, true);
+    var fileName = 'your_file_name_here';
+    var fileData = ''/* 从文件输入框获取文件数据 */;
+    xhr.setRequestHeader('Content-Range', 'bytes 0-' + (fileData.size - 1) + '/' + fileData.size);
+    xhr.setRequestHeader('Content-Disposition', 'attachment; filename="' + fileName + '"');
+    xhr.upload.onprogress = function(event) {
+        // 处理上传进度
+    };
+    xhr.onload = function() {
+        // 上传完成后的处理
+    };
+    xhr.onerror = function() {
+        // 处理上传错误
+    };
+    xhr.send(fileData);
+
+    var fileInput = document.getElementById('fileInput');
+    fileInput.addEventListener('change', function(event) {
+        var file = event.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function(event) {
+            var fileData = event.target.result;
+            // 在此处执行分片上传的代码，将fileData发送到服务器
+        };
+        reader.readAsArrayBuffer(file);
+    });
+</script>
