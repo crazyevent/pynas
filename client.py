@@ -1,6 +1,7 @@
 import optparse
 import requests
 import os
+import time
 
 
 def verbose(verbose, logstr):
@@ -9,11 +10,11 @@ def verbose(verbose, logstr):
 
 
 class FileUploader():
-    def __init__(self, url, file_path, verbose):
+    def __init__(self, url, file_path, size, verbose):
         self.url = url
         self.file_path = file_path
         self.verbose = verbose
-        self.chunk_size = 1024*1024*10
+        self.chunk_size = size
         self.up_part_ext = '.uppart'
         self.cache_path = '.cache'
 
@@ -29,7 +30,7 @@ class FileUploader():
                 os.mkdir(cache_path)
             
             cache_file = f'{cache_path}\{file_name}{self.up_part_ext}'
-            print(cache_file)
+            #print(cache_file)
             if os.path.exists(cache_file):
                 with open(cache_file, 'r') as cf:
                     start = int(cf.read())
@@ -51,24 +52,26 @@ class FileUploader():
                     print(f'{file_name}: {response.content}')
                 else:
                     print(f'{file_name}: upload error! code={response.status_code}')
+                    time.sleep(1)
+                    
 
 
 class FileDownloader():
-    def __init__(self, url, file_path, verbose):
+    def __init__(self, url, file_path, size, verbose):
         self.url = url
         self.file_path = file_path
         self.verbose = verbose
-        self.chunk_size = 1024*1024*10
+        self.chunk_size = size
 
     def start(self):
         headers = {}
         if os.path.exists(self.file_path):
             start = os.path.getsize(self.file_path)
             headers = {'Range': f'bytes={start}-'}
-            print(f'Resumable mode: start download from {start}')
+            print(f'{self.url}: download resume from {start}')
         else:
             start = 0
-            print('Normal mode: start download from beginning')
+            print('{self.url}: download start from beginning')
         response = requests.get(self.url, headers=headers, stream=True)
         with open(self.file_path, 'ab') as f:
             total_size = int(response.headers.get('content-length', start))
@@ -84,14 +87,15 @@ def main():
     parser.add_option("-f", "--file", dest="path", help="file path to be upload/download")
     parser.add_option("-u", "--url", dest="url", help="url to be upload/download")
     parser.add_option("-d", "--down", dest="isdown", action="store_true", default=False, help="download mode")
+    parser.add_option("-s", "--size", dest="size", default=1024*1024*64, help="upload/download chunked size")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False, help="print running verbose log")
     (options, args) = parser.parse_args()
 
     if options.isdown:
-        downloader = FileDownloader(options.url, options.path, options.verbose)
+        downloader = FileDownloader(options.url, options.path, int(options.size), options.verbose)
         downloader.start()
         return
-    uploader = FileUploader(options.url, options.path, options.verbose)
+    uploader = FileUploader(options.url, options.path, int(options.size), options.verbose)
     uploader.start()
 
 if __name__ == '__main__':
