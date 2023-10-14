@@ -1,23 +1,25 @@
+body {
+    margin: 0 0 0 0;
+}
+
 .page {
-    /*background-color: rgba(248, 250, 251, 1);*/
     position: relative;
-    width: 1920px;
-    height: 970px;
+    width: 100vw;
+    height: 100vh;
     overflow: hidden;
     background-color: rgba(128, 128, 128, 0.5);
 }
 
 .group_1 {
-    width: 1920px;
-    height: 970px;
+    width: 100vw;
+    height: 100vh;
     background-size: 100% 100%;
     overflow: hidden;
 }
 
 .group_2 {
-    width: 1920px;
-    height: 891px;
-    margin-bottom: 1px;
+    width: 100vw;
+    height: 100vh;
     overflow: hidden;
 }
 
@@ -25,14 +27,25 @@
     box-shadow: 0px 8px 47px 0px rgba(0, 0, 0, 0.3);
     height: 500px;
     width: 900px;
-    margin: 210px 0 0 510px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .section_2 {
-    position: relative;
     width: 900px;
     height: 500px;
     background: url(/public/play-bg.png) -47px -39px no-repeat;
-    background-color: ;
+    /*background-color: ;*/
     background-size: 994px 594px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.button_1 {
+    position: absolute;
+    top: -24px;
 }
