@@ -2,6 +2,7 @@ import optparse
 import requests
 import os
 import time
+from urllib.parse import quote
 
 
 def verbose(verbose, logstr):
@@ -39,9 +40,10 @@ class FileUploader():
             while start < size:
                 end = min(start + self.chunk_size, size)
                 chunk = f.read(self.chunk_size)
+                encode_name = quote(file_name)
                 headers = {
                     'Content-Range': f'bytes {start}-{end-1}/{size}',
-                    'Content-Disposition': f'attachment; filename="{file_name}"'
+                    'Content-Disposition': f'attachment; filename="{encode_name}"'
                 }
                 response = requests.post(self.url, headers=headers, data=chunk)
                 if response.status_code == 200 or response.status_code == 201:

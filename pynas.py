@@ -10,6 +10,7 @@ import bottle
 import multiprocessing
 import hashlib
 from cgi import parse_header
+from urllib.parse import unquote
 import re
 from bottle import Bottle, request
 from gevent.pool import Pool
@@ -351,6 +352,7 @@ def do_upload():
     filename = dispos['filename']
     if len(filename) == 0:
         return {'code': 403, 'msg': 'reject'}
+    filename = unquote(filename)
     
     range, _ = parse_header(request.headers.get('Content-Range'))
     if len(range) == 0:
