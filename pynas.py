@@ -207,7 +207,7 @@ def check_hls_prepared(key):
     return data
 
 
-@ app.route('/hls/<filepath:path>')
+@ app.route('/hls/<filepath:path>', method='get')
 def play_hls(filepath):
     split_path = filepath.split('/')
     key = split_path[0]
@@ -216,17 +216,17 @@ def play_hls(filepath):
     return bottle.static_file(filepath, hls_path)
 
 
-@ app.route('/play/<filepath:path>')
+@ app.route('/play/<filepath:path>', method='GET')
 def do_play(filepath):
     return bottle.template('play', filepath=filepath)
 
 
-@ app.route('/public/<filepath:path>')
+@ app.route('/public/<filepath:path>', method='GET')
 def web_public(filepath):
     return bottle.static_file(filepath, public_path)
 
 
-@ app.route('/<filepath:path>')
+@ app.route('/<filepath:path>', method='GET')
 def share_public(filepath):
     if filepath == 'favicon.ico':
         return bottle.static_file(filepath, public_path)
@@ -276,7 +276,7 @@ def share_public(filepath):
     return bottle.template('error', code=404)
 
 
-@ app.route('/')
+@ app.route('/', method='GET')
 def share_index():
     s = request.environ.get('beaker.session')
     user = s.get('user', None)
@@ -298,7 +298,7 @@ def share_index():
     return bottle.template('main', params=json.dumps(paths), user=user)
 
 
-@ app.route('/login')
+@ app.route('/login', method="GET")
 def login_page():
     s = request.environ.get('beaker.session')
     user = s.get('user', None)
@@ -307,7 +307,7 @@ def login_page():
     return bottle.template('login')
 
 
-@ app.route('/login', method="post")
+@ app.route('/login', method="POST")
 def do_login():
     user = request.forms.get('user')
     passwd = request.forms.get('passwd')

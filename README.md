@@ -23,8 +23,9 @@
 ```	
 - 安装完依赖后，修改配置文件config.json，使用文本编辑器打开即可
 ```
-	ext_filter: 按文件扩展名过滤，以","分隔，例如".txt,.jpg"，也可以配置在www项的单个目录内
-	users: user 用户名, passwd 密码
+	ext_filter: 按文件扩展名过滤，以","分隔，例如".txt,.jpg"，也可以配置在www项的单个目录内;
+	updir: 上传文件的保存目录;
+	users: user 用户名, passwd 密码;
 	listen: 需要开启几个服务就配置几个 addr 和 port，主要给一些多出口用户，通常不需要修改；
 	www: 需要分享几个目录就配置几个 name 和 path，其中 name 可以自定义，path 是本机的物理路径，owner 文件夹归属用户，默认为 * 代表所有用户共享，用户名用","分隔;
 ```
@@ -38,9 +39,10 @@
 
 ### TODO
 
-- 支持PNP端口映射
+- 支持UPNP端口映射
 - 接入以太坊网络，发布节点
 - 网页爬虫并支持m3u8下载
 - 接入DHT网络，并支持BT下载
 - 支持基于UDP的SCTP下载协议
 - 支持webrtc
+- 基于cef或者electron实现客户端
