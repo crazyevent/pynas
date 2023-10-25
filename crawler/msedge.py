@@ -13,15 +13,17 @@ from selenium.webdriver.edge.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 import time
 
 import subprocess
 import zipfile
 import optparse
+import m3u8down
 
 
-baseDir = os.path.dirname(os.path.realpath(sys.argv[0]))
-extractDir = f'{baseDir}\mswebdriver'
+base_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+cache_dir = f'{base_dir}{os.sep}cache'
 max_retry = 10
 
 
@@ -86,7 +88,7 @@ def download_lastest_web_driver(ver):
         zip_list = zip_file.namelist() # 得到压缩包里所有文件
 
         for f in zip_list:
-            zip_file.extract(f, extractDir) # 循环解压文件到指定目录
+            zip_file.extract(f, cache_dir) # 循环解压文件到指定目录
 
         zip_file.close()
         print('download & extract done')
@@ -115,7 +117,7 @@ def copy_file(fromFile, toFile):
 '''
 def update_ms_web_driver(ver):
     download_lastest_web_driver(ver)
-    copy_file(f'{extractDir}\msedgedriver.exe', f'{sys.prefix}\MicrosoftWebDriver.exe')
+    copy_file(f'{cache_dir}{os.sep}msedgedriver.exe', f'{sys.prefix}{os.sep}MicrosoftWebDriver.exe')
 
 
 '''
@@ -208,10 +210,9 @@ def parse_page(url, path, size):
     web.execute("send_command", params=params)
 
     web.get(url)
-    time.sleep(4)
     while 1:
         wait = WebDriverWait(web, 120)
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'mgp_play')))
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'mgp_readyState')))
 
         quality = web.execute_script("return document.querySelector('.mgp_quality > li').textContent")
         print('quality', quality)
@@ -219,15 +220,26 @@ def parse_page(url, path, size):
         ret = web.execute_script("return document.getElementsByName('twitter:image')[0].content.split('/')")
         print('params', ret)
 
+        time.sleep(4)
+        play_btn = web.find_element(By.CLASS_NAME, 'mgp_play')
+        if play_btn:
+            ActionChains(web).move_to_element(play_btn).click().perform()
+
+        wait = WebDriverWait(web, 120)
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'mgp_playingState')))
+
+        pause_btn = web.find_element(By.CLASS_NAME, 'mgp_pause')
+        if pause_btn:
+            ActionChains(web).move_to_element(pause_btn).click().perform()
+
         #text = web.page_source
         #soup = BeautifulSoup(text, 'html.parser')
-        m3u8 = f'https://cv-h.phncdn.com/hls/videos/{ret[4]}/{ret[5]}/{ret[6]}/,1080P_4000K,720P_4000K,480P_2000K,240P_1000K,_{ret[6]}.mp4.urlset/master.m3u8'
-        print('master.m3u9', m3u8)
-        web.get(m3u8)
+        m3u8_uri = f'https://cv-h.phncdn.com/hls/videos/{ret[4]}/{ret[5]}/{ret[6]}/,1080P_4000K,720P_4000K,480P_2000K,240P_1000K,_{ret[6]}.mp4.urlset/master.m3u8'
+        print('master.m3u9', m3u8_uri)
+        #web.get(m3u8_uri)
+        m3u8down.down(m3u8_uri, cache_dir)
         #if os.path.exists(f'{path}\master.m3u9'):
         print(f'{path}\master.m3u8, download success')
-
-        time.sleep(40)
         web.close()
         break
 
@@ -242,7 +254,7 @@ def pornhub():
     
     check_web_driver_update()
 
-    path = baseDir
+    path = base_dir
     if os.path.exists(options.path) and not os.path.isfile(options.path):
         path = options.path
     parse_page(options.url, path, options.size)
