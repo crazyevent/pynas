@@ -5,7 +5,6 @@ import subprocess
 import sys
 import threading
 import time
-import gevent
 import bottle
 import multiprocessing
 import hashlib
@@ -17,6 +16,8 @@ from gevent.pool import Pool
 from gevent.pywsgi import WSGIServer
 from gevent import monkey
 from beaker.middleware import SessionMiddleware
+
+import crawler.msedge
 
 
 monkey.patch_all()
@@ -372,6 +373,16 @@ def do_upload():
         f.seek(progress)
         f.truncate()
     return {'code': 200, 'filename': filename, 'progress': progress, 'msg': 'success'}
+
+
+@ app.route('/web_down', method='POST') 
+def do_parse():
+    url = request.forms.get('url')
+    p = multiprocessing.Process(target=crawler.msedge.start, args=(url, hls_path))
+    p.start()
+    with open('down_url.txt', 'a') as f:
+        f.write(f'{url}\r\n')
+    return {'code': 200, 'url': url, 'msg': 'success'}
 
 
 def run(addr, port):

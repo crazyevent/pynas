@@ -6,7 +6,10 @@ import re
 import os
 import sys
 import time
-from bs4 import BeautifulSoup
+import subprocess
+import zipfile
+import optparse
+import json
 
 from selenium import webdriver
 from selenium.webdriver.edge.options import Options
@@ -14,11 +17,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
-import time
 
-import subprocess
-import zipfile
-import optparse
 import m3u8down
 
 
@@ -160,43 +159,13 @@ def cookie_to_json(cookie):
     return obj
 
 
-'''
-    parse_page
-    1、打开页面
-    2、获取播放按钮并点击
-    3、解析得到m3u8地址
-    4、下载m3u8并解析
-    5、下载m3u8下载每个分片
-    6、将分片合并成mp4
-
-preload
-
-https://etahub.com/events?app_id=10896&ssiteName=pornhub&splatform=desktop&sfeatureName=cdnHanging&sfeatureValue=true&playerName=desktop&eventName=cdnHanging&videoId=401832671&orientation=desktopMode&requestFilename=master.m3u8&cdn=haproxy&videoId=401832671&seconds=15000&player_source=videoPage&osName=Windows&osVersion=10
-https://etahub.com/events?app_id=10896&ssiteName=pornhub&splatform=desktop&sfeatureName=QualityChange&sfeatureValue=1080&playerName=desktop&eventName=QualityChange&videoId=401832671&orientation=desktopMode&player_source=videoPage&osName=Windows&osVersion=10
-https://etahub.com/events?app_id=10896&ssiteName=pornhub&splatform=desktop&sfeatureName=btnPlay&playerName=desktop&eventName=btnPlay&videoId=401832671&orientation=desktopMode&player_source=videoPage&osName=Windows&osVersion=10
-
-
-id
-document.querySelector('#player').getAttribute('data-video-id')
-
-url
-https://di.phncdn.com/videos/202201/24/401832671/original/(m=e0YHGgaaaa)(mh=nM1893AI2lbSwvcc)15.jpg
-document.getElementsByName('twitter:image')[0].content.split('/')[4]
-
-quality
-document.querySelector('.mgp_quality > li').textContent
-
-master
-https://cv-h.phncdn.com/hls/videos/202201/24/401832671/,1080P_4000K,720P_4000K,480P_2000K,240P_1000K,_401832671.mp4.urlset/master.m3u8
-
-    基于chrome，前端渲染也可用
-'''
-def parse_page(url, path, size):
+def create_browser(path):
     # 配置 options
     opt = Options()
     # # 关闭使用 ChromeDriver 打开浏览器时上部提示语 "Chrome正在受到自动软件的控制"
     opt.add_argument("--disable-infobars")
     opt.add_argument("--disable-web-security")
+    # 无头浏览器
     #opt.add_argument('--no-sandbox')
     #opt.add_argument('--disable-dev-shm-usage')
     #opt.add_argument('--headless')
@@ -208,58 +177,101 @@ def parse_page(url, path, size):
     params = {'cmd': 'Page.setDownloadBehavior',
         'params': {'behavior': 'allow', 'downloadPath': path}}
     web.execute("send_command", params=params)
+    return web
 
+
+def js_get(url, headers={}):
+    js = f'let xhr = new XMLHttpRequest(); xhr.open("GET", "{url}"); xhr.send();'
+    return js
+
+
+def js_post(url, data, headers={}):
+    js = f'let xhr = new XMLHttpRequest(); xhr.open("GET", "{url}"); xhr.send({json.dumps(data)});'
+    return js
+
+'''
+    parse_page
+    1、打开页面
+    2、获取播放按钮并点击
+    3、解析得到m3u8地址
+    4、下载m3u8并解析
+    5、下载m3u8每个分片
+    6、将分片合并成mp4
+'''
+def ph_parse(url, path, size):
+    web = create_browser(path)
     web.get(url)
     while 1:
         wait = WebDriverWait(web, 120)
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'mgp_readyState')))
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'mgp_readyState')) or 
+                   EC.presence_of_element_located((By.CLASS_NAME, 'mgp_playingState')))
 
-        quality = web.execute_script("return document.querySelector('.mgp_quality > li').textContent")
+        quality = web.execute_script("return document.querySelector('.mgp_quality > li').textContent;")
         print('quality', quality)
 
-        ret = web.execute_script("return document.getElementsByName('twitter:image')[0].content.split('/')")
-        print('params', ret)
+        titles = web.execute_script("return document.getElementsByName('twitter:image')[0].content.split('/');")
+        print('params', titles)
 
-        time.sleep(4)
         play_btn = web.find_element(By.CLASS_NAME, 'mgp_play')
         if play_btn:
             ActionChains(web).move_to_element(play_btn).click().perform()
-
         wait = WebDriverWait(web, 120)
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'mgp_playingState')))
 
+        time.sleep(6)
         pause_btn = web.find_element(By.CLASS_NAME, 'mgp_pause')
         if pause_btn:
             ActionChains(web).move_to_element(pause_btn).click().perform()
 
+        urls = []
+        for req in web.execute_script("return window.performance.getEntries();"):
+            if '.m3u8' in req['name']:
+                urls.append(req['name'])
+        if len(urls) == 0:
+            print('master.m3u8 url not found')
+            web.refresh()
+            continue
+        print(urls)
+
         #text = web.page_source
         #soup = BeautifulSoup(text, 'html.parser')
-        m3u8_uri = f'https://cv-h.phncdn.com/hls/videos/{ret[4]}/{ret[5]}/{ret[6]}/,1080P_4000K,720P_4000K,480P_2000K,240P_1000K,_{ret[6]}.mp4.urlset/master.m3u8'
+        m3u8_uri = urls[0]
         print('master.m3u9', m3u8_uri)
         #web.get(m3u8_uri)
-        m3u8down.down(m3u8_uri, cache_dir)
-        #if os.path.exists(f'{path}\master.m3u9'):
-        print(f'{path}\master.m3u8, download success')
-        web.close()
+        m3u8down.down(m3u8_uri, f'{path}{os.sep}{titles[4]}_{titles[5]}_{titles[6]}')
+        print(f'{m3u8_uri}, download success')
+        web.quit()
         break
 
 
-def pornhub():
+def xv_parse(url, path, size):
+    web = create_browser(path)
+    web.get(url)
+    while 1:
+        web.quit()
+        break
+
+
+def start(url='', path=base_dir, size=1024*1024):
     parser = optparse.OptionParser()
-    parser.add_option("-u", "--url", dest="url", help="page url to be parse")
-    parser.add_option("-p", "--path", dest="path", default='temp', help="path to save file")
-    parser.add_option("-s", "--size", dest="size", default=1024*1024, help="download chunked size")
+    parser.add_option("-u", "--url", dest="url", default=url, help="page url to be parse")
+    parser.add_option("-p", "--path", dest="path", default=path, help="path to save file")
+    parser.add_option("-s", "--size", dest="size", default=size, help="download chunked size")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False, help="print running verbose log")
     (options, args) = parser.parse_args()
     
     check_web_driver_update()
 
-    path = base_dir
     if os.path.exists(options.path) and not os.path.isfile(options.path):
         path = options.path
-    parse_page(options.url, path, options.size)
+    if os.path.exists(path):
+        os.makedirs(path, 511, True)
+    
+    if '.pornhub.' in options.url:
+        ph_parse(options.url, path, options.size)
+    if '.xvideos.' in options.url:
+        xv_parse(options.url, path, options.size)
 
 
 if __name__ == "__main__":
-    #tieba()
-    pornhub()
+    start()

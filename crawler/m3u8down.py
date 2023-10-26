@@ -1,6 +1,8 @@
+# -*- coding:utf-8 -*-
 import m3u8
 import os
 import requests
+import time
 
 
 proxies = {
@@ -23,10 +25,11 @@ def set_proxies(uri):
 def down_ts(ts_url, name, num_retries):
     print(f'remain {num_retries}, down {ts_url}, to {name}')
     try:
-        with requests.get(ts_url, stream=True, timeout=(5, 60), verify=False, headers={}) as res:
+        with requests.get(ts_url, stream=True, timeout=(5, 60), verify=False, headers={}, proxies=proxies) as res:
             if res.status_code != 200:
-                print(res.status_code)
+                print(f'status_code {res.status_code}')
                 if num_retries > 0: 
+                    time.sleep(4)
                     down_ts(ts_url, name, num_retries - 1)
                 return
             with open(name, "wb") as ts:
@@ -38,6 +41,7 @@ def down_ts(ts_url, name, num_retries):
         if os.path.exists(name):
             os.remove(name)
         if num_retries > 0:
+            time.sleep(4)
             down_ts(ts_url, name, num_retries - 1)
 
 
@@ -61,7 +65,10 @@ def down(uri, save_path):
 
     for segment in variant_m3u8.segments:
         tsu = segment.uri
-        file = save_path + os.path.basename(tsu)
+        fname = os.path.basename(tsu).split('?')[0]
+        file = save_path + fname
         if '://' not in tsu:
             tsu = base_uri + segment.uri
         down_ts(tsu, file, 3)
+        segment.uri = fname
+    variant_m3u8.dump(save_path + 'index.m3u8')

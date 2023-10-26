@@ -1,11 +1,5 @@
-Beaker==1.12.0
-bottle==0.12.23
-cffi==1.15.1
-gevent==22.10.2
-greenlet==2.0.1
-pycparser==2.21
-zope.event==4.6
-zope.interface==5.5.2
-bs4
+Beaker
+bottle
+gevent
 selenium
 m3u8
