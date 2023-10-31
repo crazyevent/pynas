@@ -252,7 +252,7 @@ def xv_parse(url, path, size):
         break
 
 
-def start(url='', path=base_dir, size=1024*1024):
+def start(url='', path=base_dir, size=64*1024*1024):
     parser = optparse.OptionParser()
     parser.add_option("-u", "--url", dest="url", default=url, help="page url to be parse")
     parser.add_option("-p", "--path", dest="path", default=path, help="path to save file")
