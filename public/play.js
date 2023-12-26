@@ -11,7 +11,7 @@ let videoTemplate = (src, vtt) =>
         preload="auto"
         poster="//vjs.zencdn.net/v/oceans.png"
         data-setup='{}'
-        style="width: 100%; height: 100%; object-fit: fill">
+        style="width: 100%; height: 100%; object-fit: contain">
             <source src="${src}" type="application/x-mpegURL"></source>
             <track kind="captions" src="${vtt}" srclang="zh" label="Chinese" default />
             <p class="vjs-no-js">
