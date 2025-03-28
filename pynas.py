@@ -124,7 +124,7 @@ def clear_hls_cache(item):
 def check_hls_timeout():
     keys = []
     for k, v in hls_media_map.items():
-        now = time.clock()
+        now = time.perf_counter()
         if now - v['ts'] >= 30:
             print(k + ' is timeout')
             keys.append(k)
@@ -167,7 +167,7 @@ def prepare_media(hls_base_path, media_path, muxer_mode):
         stdout=sys.stdout,
         stderr=sys.stderr,
         )
-    hls_media_map[key] = {'ts': time.clock(),
+    hls_media_map[key] = {'ts': time.perf_counter(),
         'prepared': False,
         'proc': p,
         'hls_full': fpath,
@@ -213,7 +213,7 @@ def play_hls(filepath):
     split_path = filepath.split('/')
     key = split_path[0]
     if key in hls_media_map:
-        hls_media_map[key]['ts'] = time.clock()
+        hls_media_map[key]['ts'] = time.perf_counter()
     return bottle.static_file(filepath, hls_path)
 
 
